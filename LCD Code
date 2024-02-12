@@ -1,0 +1,123 @@
+// Codigo para la LCD
+
+#include <msp430.h>
+
+    // Funcion de espera en milisegundos
+    void delay(unsigned int milisegundos){
+        unsigned int i;
+        for(i = 0 ; i < milisegundos ; i++){
+            __delay_cycles(25000);   // Esta funcion es proporcionada por el compilador y se utiliza para generar un retraso en ciclos de reloj especificos del microcontrolador
+        }
+    }
+
+
+
+    // Funcion para enviar un comando a la LCD
+    void lcdComand(unsigned char command){
+        P6OUT &= ~BIT7; // Establecemos RS en bajo (0) para poder enviar un comando
+        P5OUT |= BIT1;  // Activamos (alto (1)) el pin de 'enable' (habilitacion) con esto indico al LCD que esta listo para recibir datos
+
+        // Con estas lineas enviamos los 4 bits mas significativos de comando al LCD.  Es de esta forma ya que los pines del LCD estan distribuidos en parios puertos GPIO.
+        P7OUT = (P7OUT & ~(BIT4 | BIT6)) | ((command >> 4) & 0x03); //
+        P3OUT = (P3OUT & ~(BIT5 | BIT7)) | ((command >> 2) & 0x03); //
+        P4OUT = (P4OUT & ~(BIT1 | BIT3 | BIT6)) | (command & 0x38); //
+        P5OUT = (P5OUT & ~BIT4) | ((command >> 1) & BIT4);  //
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+        P5OUT &= ~BIT1; // Desactivamos (bajo (0)) el pin de 'enable' (habilitacion) para indicar que se termino la operacion de escritura
+
+        P5OUT |= BIT1;  // Activamos (alto (1)) el pin de 'enable' (habilitacion) con esto indico al LCD que esta listo para recibir datos
+
+        // Con estas lineas enviamos los 4 bits menos significativos de comando al LCD.  Es de esta forma ya que los pines del LCD estan distribuidos en parios puertos GPIO.
+        P7OUT = (P7OUT & ~(BIT4 | BIT6)) | ((command << 2) & 0x03); //
+        P3OUT = (P3OUT & ~(BIT5 | BIT7)) | ((command << 4) & 0x03); //
+        P4OUT = (P4OUT & ~(BIT1 | BIT3 | BIT6)) | ((command << 1) & 0x38);  //
+        P5OUT = (P5OUT & ~BIT4) | ((command << 2) & BIT4);  //
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+        P5OUT &= ~BIT1; // Desactivamos (bajo (0)) el pin de 'enable' (habilitacion) para indicar que se termino la operacion de escritura
+
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+    }
+
+
+
+    // Funcion para enviar un dato a la LCD
+    void lcdWrite(unsigned char data){
+        P6OUT |= BIT7; // Establecemos RS en alto (1) para poder enviar datos
+        P5OUT |= BIT1;  // Activamos (alto (1)) el pin de 'enable' (habilitacion) con esto indico al LCD que esta listo para recibir datos
+
+        // Con estas lineas enviamos los 4 bits mas significativos del dato enviado al LCD.  Es de esta forma ya que los pines del LCD estan distribuidos en parios puertos GPIO.
+        P7OUT = (data & (BIT4 | BIT6)) | (P7OUT & ~(BIT4 | BIT6));
+        P3OUT = (data & (BIT5 | BIT7)) | (P3OUT & ~(BIT5 | BIT7));
+        P4OUT = (data & (BIT1 | BIT3 | BIT6)) | (P4OUT & ~(BIT1 | BIT3 | BIT6));
+        P5OUT = (data & BIT4) | (P5OUT & ~BIT4);
+
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+        P5OUT &= ~BIT1; // Desactivamos (bajo (0)) el pin de 'enable' (habilitacion) para indicar que se termino la operacion de escritura
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+
+        P6OUT |= BIT7; // Establecemos RS en alto (1) para poder enviar datos
+
+
+        // Con estas lineas enviamos los 4 bits menos significativos del dato enviado al LCD.  Es de esta forma ya que los pines del LCD estan distribuidos en parios puertos GPIO.
+        P7OUT = ((data << 2) & (BIT4 | BIT6)) | (P7OUT & ~(BIT4 | BIT6));
+        P3OUT = ((data << 2) & (BIT5 | BIT7)) | (P3OUT & ~(BIT5 | BIT7));
+        P4OUT = ((data << 2) & (BIT1 | BIT3 | BIT6)) | (P4OUT & ~(BIT1 | BIT3 | BIT6));
+        P5OUT = ((data << 2) & BIT4) | (P5OUT & ~BIT4);
+
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+        P5OUT &= ~BIT1; // Desactivamos (bajo (0)) el pin de 'enable' (habilitacion) para indicar que se termino la operacion de escritura
+        delay(1);   // Tiempo de espera de un (1) milisegundo con esto aseguramos que la LCD tenga suficiente tiempo para procesar la informacion
+    }
+
+
+
+    // Funcion para inicializar la LCD
+    void lcdInt(){
+        P6DIR |= BIT7;  // Configuramos el pin 6.7 como salida y se usara para el RS
+        P5DIR |= BIT1;  // Configuramos el pin 5.1 como salida y se usara para el E
+
+        // Establece los pines D0-D7 como salidas
+        P7DIR |= BIT4 | BIT6;           // D0 y D1
+        P3DIR |= BIT5 | BIT7;           // D2 y D3
+        P4DIR |= BIT1 | BIT3 | BIT6;    // D4, D5 y D6
+        P5DIR |= BIT4;                  // D7
+
+        delay(50);  // Espera inicial de 50ms
+
+        lcdComand(0x02);  // Inicializa el LCD en modo de 4 bits
+        lcdComand(0x28);  // Configura el LCD en modo de 2 líneas y matriz de 5x7
+        lcdComand(0x0E);  // Enciende la pantalla, el cursor y el cursor de parpadeo
+        lcdComand(0x01);  // Borra la pantalla y mueve el cursor a la posición inicial
+        lcdComand(0x06);  // Desplaza el cursor hacia la derecha después de escribir un carácter
+    }
+
+
+
+    // Funcion principal
+    void main(void){
+        WDTCTL = WDTPW | WDTHOLD;
+
+        // Declaracion de los pines que se usaran
+        P6DIR |= BIT7;  // Configuramos el pin 6.7 como salida y se usara para el RS
+        P5DIR |= BIT1;  // Configuramos el pin 5.1 como salida y se usara para el E
+        P5DIR |= BIT0;
+        P5OUT |= BIT0;
+
+
+        //Configuramos los pines de dato de la pantalla LCD como salidas
+        P7DIR |= BIT4 | BIT6;           // D0 y D1
+        P3DIR |= BIT5 | BIT7;           // D2 y D3
+        P4DIR |= BIT1 | BIT3 | BIT6;    // D4, D5 y D6
+        P5DIR |= BIT4;                  // D7
+
+        lcdInt();     // Inicializa el LCD
+
+        // Envía un mensaje a la pantalla LCD
+        lcdWrite('H');
+        lcdWrite('o');
+        lcdWrite('l');
+        lcdWrite('a');
+        lcdWrite('!');
+
+        while (1);   // Bucle infinito
+    }
