@@ -1,0 +1,26 @@
+ Codigo de un boton en pull-down
+#include <msp430.h>
+
+void main(void){
+    WDTCTL = WDTPW | WDTHOLD;   // Detenemos el temporizador de vigilancia
+
+    // Configuracion para el pin que energizara el boton 01
+    P5DIR |= BIT0;  // Configuramos el pin 5.0 como salida
+    P5OUT |= BIT0;  // Establecemos el pin 5.0 como alto
+
+    // Configuracion para el pin que energizara la led
+    P4DIR |= BIT0;  // Configura el pin 4.0 como salida
+
+    // Configuracion para el pin que leera el valor del boton 01
+    P8DIR &= ~BIT5;  //Configuramos el pin 8.5 como entrada
+
+    // Loop para el encencido y apagado de la led segun el estado del boton
+    while(1){   // Establecemos un loop infinito
+        if((P8IN & BIT5)){ // Cuando el pin 8.5 lea un cero ejecutara la instruccion
+            P4OUT |= BIT0;  // Establecemos el pin 4.0 como alto
+        }
+        else{   // Cuando el pin 8.5 sea diferente de cero ejecutara la instruccion
+            P4OUT &= ~BIT0; // Establecemos el pin 4.0 como bajo
+        }
+    }
+}
